@@ -106,14 +106,14 @@ def main() -> int:
                                 *shape, "-r", str(args.reps)])
         tps = labkit.bench_metric(out, args.metric)
         rows.append({"quant": label, "size_gb": round(size_gb, 2), "tok_s": tps})
-        print(f"   {label:12s} {size_gb:5.2f} GB   {args.metric} = {tps:7.1f} tok/s")
+        print(f"   {label:12s} {size_gb:5.2f} GiB   {args.metric} = {tps:7.1f} tok/s")
 
     if not any(r["tok_s"] for r in rows):
         labkit.die("llama-bench produced no numbers for any quantization.")
 
     base = next((r for r in rows if r["quant"] == "UD-Q4_K_XL"), rows[0])
     table = labkit.md_table(
-        ["Quantization", "Size (GB)", f"{args.metric} (tok/s)", "vs UD-Q4_K_XL", "tok/s per GB"],
+        ["Quantization", "Size (GiB)", f"{args.metric} (tok/s)", "vs UD-Q4_K_XL", "tok/s per GiB"],
         [[r["quant"], f"{r['size_gb']:.2f}", f"{r['tok_s']:.1f}",
           f"{r['tok_s'] / base['tok_s']:.2f}x" if base["tok_s"] else "-",
           f"{r['tok_s'] / r['size_gb']:.1f}" if r["size_gb"] else "-"] for r in rows],
@@ -126,14 +126,11 @@ Host `{labkit.host_tag()}` · llama.cpp `{labkit.LLAMA_CPP_BUILD}` ·
 
 {table}
 
-Decode is memory-bandwidth-bound, so fewer bytes per weight usually means more
-tokens per second -- the "tok/s per GB" column shows how much of that you are
-actually getting back per gigabyte spent.
-
-Speed is only half the trade. The other half is quality, and no benchmark here
-measures it. Serve two of these (`make serve` and
-`.venv/bin/python labs/02-serve/serve.py --compare`) and ask each the same three questions
-before you claim a winner.
+Smaller files may reduce memory traffic, but dequantization and GPU kernels also
+affect decode speed. This sweep measures throughput; it does not isolate the
+cause of any difference. "tok/s per GiB" is a storage-efficiency ratio, not
+a direct measure of memory bandwidth. Check answer quality separately before
+choosing a quantization for serving.
 
 ## Your finding (required -- replace this line)
 

@@ -3,13 +3,13 @@
 Host `Windows-AMD64` · CPU `AMD Ryzen 5 5600H with Radeon Graphics`
 Vector extensions recorded by hardware probe: not available
 llama.cpp `b10488` both sides · `threads=6` ·
-**both pinned to `ngl=0`** so this isolates the compiler ·
+**both pinned to `ngl=0`** so GPU offload does not confound the comparison ·
 metric `tg128`, 3 repetitions
 
 > **Backend mismatch, handled.** The prebuilt binary sees
 > `['CUDA0: NVIDIA GeForce RTX 3050 Laptop GPU (4095 MiB, 3305 MiB free)']` and your source build sees `(no devices)`.
-> Left at `-ngl 99` this comparison would have measured the accelerator and printed
-> it under a compiler headline, so both sides were pinned to `-ngl 0`.
+> Left at `-ngl 99`, the comparison would have mixed accelerator and CPU results.
+> Both sides were pinned to `-ngl 0`; compiler, CPU dispatch, and packaging still differ.
 
 | Binary | Built for | tg128 (tok/s) | Relative |
 |:--|--:|--:|--:|
@@ -37,8 +37,8 @@ MinGW GCC 14.2, `-DGGML_NATIVE=ON`, and `-DGGML_CUDA=OFF`. Windows compilation
 also required `-D_WIN32_WINNT=0x0A00` for both C and C++ flags. The build log
 contains `-O3 -march=native`; GCC resolves that to `znver3` on this Ryzen 5
 5600H and reports AVX2/FMA enabled, AVX-512F disabled. The Windows hardware
-probe did not record extensions, so the earlier "none" line was an absence of
-probe data, not a CPU capability result.
+probe did not record extensions; "not available" in the header describes
+missing probe data, not a CPU capability result.
 
 The release folder contains separate `ggml-cpu-*.dll` variants, including a
 Haswell AVX2 variant; it can dispatch to a suitable optimized kernel at

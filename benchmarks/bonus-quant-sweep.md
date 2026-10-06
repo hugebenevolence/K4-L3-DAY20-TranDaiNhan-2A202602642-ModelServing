@@ -3,19 +3,17 @@
 Host `Windows-AMD64` · llama.cpp `b10488` ·
 `threads=6` `ngl=99` · metric `tg128`
 
-| Quantization | Size (GB) | tg128 (tok/s) | vs UD-Q4_K_XL | tok/s per GB |
+| Quantization | Size (GiB) | tg128 (tok/s) | vs UD-Q4_K_XL | tok/s per GiB |
 |:--|--:|--:|--:|--:|
 | UD-Q4_K_XL | 2.97 | 80.6 | 1.00x | 27.1 |
 | UD-Q2_K_XL | 2.24 | 77.7 | 0.96x | 34.7 |
 
-Decode is memory-bandwidth-bound, so fewer bytes per weight usually means more
-tokens per second -- the "tok/s per GB" column shows how much of that you are
-actually getting back per gigabyte spent.
-
-Speed is only half the trade. The other half is quality, and no benchmark here
-measures it. Serve two of these (`make serve` and
-`.venv/bin/python labs/02-serve/serve.py --compare`) and ask each the same three questions
-before you claim a winner.
+The file-size reduction alone did not improve decode throughput here: Q2 is
+smaller yet slower in this run. Memory traffic, dequantization work, and GPU
+kernel choice can all affect that result; this sweep did not isolate them.
+The "tok/s per GiB" column is a storage-efficiency ratio, not a direct measure
+of memory bandwidth. Quality was checked separately on five identical prompts
+per quantization in `bonus-quality.md`.
 
 ## Kết quả chọn quantization
 

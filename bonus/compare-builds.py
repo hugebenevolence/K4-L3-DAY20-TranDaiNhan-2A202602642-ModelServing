@@ -71,7 +71,7 @@ def main() -> int:
     hw = labkit.load_hardware()
     model = str(labkit.repo_root() / labkit.load_active()["primary_model"])
     threads = labkit.threads(hw)
-    # B1 asks a COMPILER question, so both binaries must run on the same backend.
+    # B1 compares CPU binaries, so both must run with GPU offload disabled.
     # The prebuilt asset and your source build often differ there -- upstream ships
     # no Linux CUDA build, so an NVIDIA box gets Vulkan (frequently with no ICD, i.e.
     # CPU) while a -DGGML_CUDA=ON source build offloads. Benchmarking those two at
@@ -151,15 +151,15 @@ interchangeable explanations for a speedup.
         mismatch_block = f"""
 > **Backend mismatch, handled.** The prebuilt binary sees
 > `{pre_dev or '(no devices)'}` and your source build sees `{src_dev or '(no devices)'}`.
-> Left at `-ngl 99` this comparison would have measured the accelerator and printed
-> it under a compiler headline, so both sides were pinned to `-ngl 0`.
+> Left at `-ngl 99`, the comparison would have mixed accelerator and CPU results.
+> Both sides were pinned to `-ngl 0`; compiler, CPU dispatch, and packaging may still differ.
 """
     md = f"""# Bonus B1 - Prebuilt vs source build
 
 Host `{labkit.host_tag()}` · CPU `{cpu.get('model', '?')}`
 Vector extensions recorded by hardware probe: {', '.join(exts) or 'not available'}
 llama.cpp `{labkit.LLAMA_CPP_BUILD}` both sides · `threads={threads}` ·
-**both pinned to `ngl=0`** so this isolates the compiler ·
+**both pinned to `ngl=0`** so GPU offload does not confound the comparison ·
 metric `{args.metric}`, {args.reps} repetitions
 {mismatch_block}
 {table}
