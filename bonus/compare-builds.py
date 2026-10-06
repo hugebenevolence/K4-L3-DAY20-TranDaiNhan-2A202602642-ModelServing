@@ -87,7 +87,7 @@ def main() -> int:
     labkit.banner(f"Prebuilt vs source build ({args.metric})")
     print(f"  model   : {pathlib.Path(model).name}")
     print(f"  threads : {threads}   ngl: {ngl}")
-    print(f"  CPU     : {cpu.get('model', '?')}  [{', '.join(exts) or 'no vector extensions detected'}]")
+    print(f"  CPU     : {cpu.get('model', '?')}  [{', '.join(exts) if exts else 'extensions not recorded by hardware probe'}]")
     print(f"\n  prebuilt: {pre.relative_to(labkit.repo_root())}")
     print(f"            {version_of(pre)}")
     print(f"  source  : {src.relative_to(labkit.repo_root())}")
@@ -157,7 +157,7 @@ interchangeable explanations for a speedup.
     md = f"""# Bonus B1 - Prebuilt vs source build
 
 Host `{labkit.host_tag()}` · CPU `{cpu.get('model', '?')}`
-Vector extensions detected: {', '.join(exts) or 'none'}
+Vector extensions recorded by hardware probe: {', '.join(exts) or 'not available'}
 llama.cpp `{labkit.LLAMA_CPP_BUILD}` both sides · `threads={threads}` ·
 **both pinned to `ngl=0`** so this isolates the compiler ·
 metric `{args.metric}`, {args.reps} repetitions
@@ -170,8 +170,9 @@ before: {a:.1f} tok/s (prebuilt release)
 after:  {b:.1f} tok/s (source build, -DGGML_NATIVE=ON)
 speedup: {gain:.2f}x
 
-Same source revision, same model, same backend, same `-ngl` -- the only difference
-is what the compiler was allowed to assume about the CPU.
+Same source revision, same model, same backend, same `-ngl`. The binaries may
+also differ in compiler, build flags and CPU runtime dispatch; this comparison
+does not isolate `-DGGML_NATIVE=ON` by itself.
 {"A gap this small usually means the prebuilt binary already dispatches to the right kernels at runtime (releases ship one libggml-cpu-*.so per microarchitecture and pick via CPUID), or that this workload is bandwidth-bound rather than instruction-bound. Both are real findings -- say which one you think it is." if 0.97 <= gain <= 1.03 else ""}
 {offload_block}
 

@@ -12,7 +12,7 @@
 | OS | Windows 11 AMD64 |
 | CPU | AMD Ryzen 5 5600H with Radeon Graphics |
 | Cores | 6 physical / 12 logical |
-| CPU extensions | Script Windows không probe extension; không dùng kết quả AVX để kết luận |
+| CPU extensions | GCC 14.2 `-march=native` xác định `znver3`, bật AVX2/FMA, tắt AVX-512F; script hardware Windows không tự probe |
 | RAM | 13,9 GiB |
 | Accelerator | NVIDIA GeForce RTX 3050 Laptop GPU, 4096 MiB; CUDA được `llama.cpp` nhận diện |
 | Runtime | llama.cpp b10488, `llama-b10488-bin-win-cuda-12.4-x64.zip` |
@@ -20,7 +20,7 @@
 | Quantization | UD-Q4_K_XL chính; UD-Q2_K_XL đối chiếu |
 | Nơi chạy | Máy Windows local trong `hardware.json` |
 
-**Setup story:** Tải prebuilt CUDA runtime và hai GGUF, không build từ source. PowerShell cần `PYTHONIOENCODING=utf-8` để in ký tự Unicode. Port 8080 đã bị ứng dụng khác chiếm nên lượt serve/load dùng `LAB_SERVER_PORT=18080`. Script ghi Markdown trên Windows ban đầu dùng CP1252; đã sửa `labkit.write_report` sang UTF-8 và chuyển báo cáo đã sinh, giữ nguyên số liệu.
+**Setup story:** Tải prebuilt CUDA runtime và hai GGUF cho phần chính. Sau đó build `llama.cpp` b10488 từ source bằng MinGW GCC/Ninja cho bonus B1. PowerShell cần `PYTHONIOENCODING=utf-8` để in ký tự Unicode. Port 8080 đã bị ứng dụng khác chiếm nên lượt serve/load dùng `LAB_SERVER_PORT=18080`. Script ghi Markdown trên Windows ban đầu dùng CP1252; đã sửa `labkit.write_report` sang UTF-8 và chuyển báo cáo đã sinh, giữ nguyên số liệu.
 
 ## 2. Đo lường
 
@@ -84,6 +84,8 @@ Theo sweep thread, `-t 1` và `-t 6` chỉ khác 1,01× (81,05 so với 80,12 to
 
 ## 6. Bonus
 
+Đã làm **B1** build b10488 từ source và so với prebuilt trên CPU: 9,71 so với 18,09 tok/s (`tg128`, 6 threads, `ngl=0`, 3 repetitions). Bản prebuilt nhanh hơn **1,86×**. Hai binary khác compiler và cách đóng gói CPU backend; chỉ số này không chứng minh riêng tác động của `-DGGML_NATIVE=ON`. Xem `benchmarks/bonus-build-compare-tg128.md` để xem cờ build và giới hạn diễn giải.
+
 Đã làm **B2** quantization sweep, **B3** speedup từ sweep, **B4/C5** kiểm tra chất lượng 5 prompt trên Q4/Q2, và **B5/C9** embedding serving thật. Xem `benchmarks/bonus-quant-sweep.md`, `bonus-quality.md`, `bonus-embedding-serving.md`.
 
 ```text
@@ -104,7 +106,8 @@ Q2 dùng ít bộ nhớ hơn nhưng không cải thiện decode; thay `--paralle
 - [x] 5 screenshots chụp từ terminal và CSV Locust thật
 - [x] Model weights và runtime binary không được commit
 - [ ] Người nộp đọc lại phần lập luận, xác nhận cohort và ngày submit
-- [ ] Push public repo và nộp URL lên LMS
+- [x] Push public repo lên GitHub
+- [ ] Nộp URL repo lên LMS
 
 ## 9. Khai báo sử dụng AI
 
