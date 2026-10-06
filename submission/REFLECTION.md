@@ -1,188 +1,111 @@
-# Reflection — Day 20 Lab (Personal Report)
+# Reflection — Day 20 Model Serving
 
-> **Đây là báo cáo cá nhân.** Số liệu của bạn **không** so sánh được với bạn cùng lớp
-> — chỉ so **before vs after trên chính máy bạn**. Rubric chấm độ rõ ràng của setup,
-> đo lường và **lập luận**, không chấm tốc độ tuyệt đối.
->
-> `make verify` sẽ fail nếu còn placeholder chưa điền. Đó là cố ý.
+**Họ Tên:** Trần Đại Nhân
+**MSSV:** 2A202602642
+**Cohort:** A20-K4 (suy từ tên repo K4; cần người nộp xác nhận)
+**Ngày submit dự kiến:** 2026-10-06 (UTC+7)
 
-**Họ Tên:** _<Họ Tên>_
-**MSSV:** _<MSSV>_
-**Cohort:** _<A20-K1 / A20-K2 / ...>_
-**Ngày submit:** _<YYYY-MM-DD>_
+## 1. Hardware & runtime
 
----
+| Mục | Giá trị đo/kiểm tra |
+|:--|:--|
+| OS | Windows 11 AMD64 |
+| CPU | AMD Ryzen 5 5600H with Radeon Graphics |
+| Cores | 6 physical / 12 logical |
+| CPU extensions | Script Windows không probe extension; không dùng kết quả AVX để kết luận |
+| RAM | 13,9 GiB |
+| Accelerator | NVIDIA GeForce RTX 3050 Laptop GPU, 4096 MiB; CUDA được `llama.cpp` nhận diện |
+| Runtime | llama.cpp b10488, `llama-b10488-bin-win-cuda-12.4-x64.zip` |
+| Model | Gemma 4 E2B, `LAB_MODEL=gemma4-e2b` |
+| Quantization | UD-Q4_K_XL chính; UD-Q2_K_XL đối chiếu |
+| Nơi chạy | Máy Windows local trong `hardware.json` |
 
-## 1. Hardware & runtime  *(rubric 1, 2 — 10 điểm)*
+**Setup story:** Tải prebuilt CUDA runtime và hai GGUF, không build từ source. PowerShell cần `PYTHONIOENCODING=utf-8` để in ký tự Unicode. Port 8080 đã bị ứng dụng khác chiếm nên lượt serve/load dùng `LAB_SERVER_PORT=18080`. Script ghi Markdown trên Windows ban đầu dùng CP1252; đã sửa `labkit.write_report` sang UTF-8 và chuyển báo cáo đã sinh, giữ nguyên số liệu.
 
-> Từ `make probe`. Paste output hoặc điền tay.
+## 2. Đo lường
 
-- **OS:** _<macOS 14 / Windows 11 / Ubuntu 24.04 / ...>_
-- **CPU:** _<Apple M2 / Intel i7-12700H / AMD Ryzen 7 5800H>_
-- **Cores:** _<physical / logical>_
-- **CPU extensions:** _<AVX2 / AVX-512 / NEON / —>_
-- **RAM:** _<GB>_
-- **Accelerator:** _<NVIDIA RTX 4060 / Apple Metal / Vulkan / CPU only>_
-- **llama.cpp asset đã tải:** _<vd: llama-b10488-bin-macos-arm64.tar.gz>_
-- **Model đã dùng:** _<Gemma 4 E2B / Qwen3.5 0.8B>_ (`LAB_MODEL=`_<gemma4-e2b / qwen35-0.8b>_)
-- **Quantization:** _<primary>_ + _<compare>_ (từ `models/active.json`)
+Mỗi quantization gồm 10 request thành công sau một warm-up. Số dưới đây từ `benchmarks/01-quickstart-results.json` của lượt bench cuối.
 
-**Chạy ở đâu:** _<laptop của tôi / Colab / Kaggle>_
-_(Nếu dùng cloud fallback: nói rõ vì sao — RAM < 8 GB, setup fail, v.v. Không mất điểm.)_
+| Quantization | Size (GiB) | Load (ms) | TTFT P50/P95 (ms) | TPOT P50/P95 (ms) | E2E P50/P95/P99 (ms) | Decode (tok/s) |
+|:--|--:|--:|:--|:--|:--|--:|
+| UD-Q4_K_XL | 2,97 | 3644 | 70 / 223 | 12,9 / 13,0 | 888 / 1035 / 1035 | 77,4 |
+| UD-Q2_K_XL | 2,24 | 4576 | 65 / 212 | 13,0 / 13,3 | 883 / 1024 / 1024 | 77,0 |
 
-**Setup story** (≤ 80 chữ): điều gì cần thay đổi để lab chạy trên máy bạn? Có bước
-nào fail rồi phải workaround không?
+**Quan sát:** Q2 nhỏ hơn 0,73 GiB nhưng decode chậm hơn khoảng 0,5% trong bench và 3,6% trong sweep `tg128`; không có speedup đáng tin cậy. Hai bản đều trả lời sai TTFT/TPOT khi thiếu context, còn Q2 mắc thêm lỗi “contiguous” ở câu PagedAttention. Với bộ 5 câu nhỏ này và RAM hiện có, chọn Q4. Xem `benchmarks/bonus-quality.md`.
 
-_Answer here._
+## 3. Serving under load
 
----
-
-## 2. Đo lường  *(rubric 3, 4, 5 — 20 điểm)*
-
-> Paste bảng từ `benchmarks/01-quickstart-results.md` (`make bench` tự sinh).
-
-| Quantization | Size (GB) | Load (ms) | TTFT P50/P95 (ms) | TPOT P50/P95 (ms) | E2E P50/P95/P99 (ms) | Decode (tok/s) |
-|---|--:|--:|--:|--:|--:|--:|
-| UD-Q4_K_XL | | | | | | |
-| UD-Q2_K_XL | | | | | | |
-
-**Quan sát** (≤ 60 chữ): 2-bit nhanh hơn bao nhiêu, và **có đáng không**? Bạn đã thử
-hỏi cùng một câu trên cả hai (`make serve` vs `.venv/bin/python labs/02-serve/serve.py --compare`)
-chưa? Chất lượng khác nhau thế nào?
-
-_Answer here._
-
----
-
-## 3. Serving under load  *(rubric 8, 9, 10 — 20 điểm)*
-
-> Từ `benchmarks/02-server-results.md` (`make load-report`).
+Hai lượt Locust chạy 60 giây mỗi lượt, cùng model UD-Q4_K_XL và `--parallel 4`.
 
 | Users | RPS | P50 (ms) | P95 (ms) | P99 (ms) | Eff. concurrency | Failures |
 |--:|--:|--:|--:|--:|--:|--:|
-| 10 | | | | | | |
-| 50 | | | | | | |
+| 10 | 2,61 | 2700 | 4500 | 5100 | 7,5 | 0 |
+| 50 | 2,43 | 19000 | 20000 | 21000 | 40,5 | 0 |
 
-- **Offered load tăng 5×, throughput thực tăng:** _<X.XX>×_
-- **P95 tăng:** _<X.XX>×_
-- **Effective concurrency ở 50 users:** _<số>_ so với `--parallel` = _<số>_ slots
+- Offered load tăng 5×; throughput thực đạt **0,93×**.
+- P95 tăng **4,44×**.
+- Peak `llamacpp:n_busy_slots_per_decode` lấy mẫu dưới 50 users: **3,96/4** slots; `requests_deferred` peak **45**.
 
-**Peak `llamacpp:n_busy_slots_per_decode`** (từ `make metrics` khi `make load-50` đang
-chạy): _<số>_ / _<slots>_ slots
+**Saturation reading:** Ở 10 users, Little's Law cho 7,5 request trong hệ thống, đã vượt 4 slot; hai mốc đo chưa xác định chính xác điểm gãy dưới 10. Đến 50 users, RPS không tăng nhưng P95 tăng 4,44× và 45 request bị deferred: thời gian thêm chủ yếu là chờ hàng đợi. Với SLO P95 ≤ 5 giây, lượt 10 users đạt còn 50 users thất bại. Giới hạn/admission control cho tải quá khả năng phục vụ sẽ bảo vệ goodput theo SLO; thay đổi slot cần được đo lại cùng SLO.
 
-**Saturation reading** (≤ 80 chữ): server của bạn bão hoà ở đâu, và **bằng chứng nào**
-thuyết phục bạn? Nếu P95 tăng nhanh hơn RPS thì phần latency thêm đó là queue time hay
-compute time — bạn biết bằng cách nào? Nếu bạn phải nâng goodput@SLO, bạn sẽ đổi knob
-nào **trước**, và vì sao knob đó?
-
-_Answer here._
-
----
-
-## 4. Integration  *(rubric 12, 13 — 15 điểm)*
-
-> Từ `make pipeline`. Nói thật cái nào real, cái nào stub — stub **không** mất điểm.
+## 4. Integration
 
 | Day | Piece | Real hay stub? |
-|---|---|---|
-| N16 Cloud/IaC | | |
-| N17 Data pipeline | | |
-| N18 Lakehouse | | |
-| N19 Vector + features | | |
-| N20 Serving | `llama-server` | real |
+|:--|:--|:--|
+| N16 Cloud/IaC | Localhost | Stub cho cloud/IaC |
+| N17 Data pipeline | Danh sách tài liệu trong bộ nhớ | Stub |
+| N18 Lakehouse | `TOY_DOCS` | Stub |
+| N19 Vector + features | Keyword overlap | Stub; không có vector index/feature store |
+| N20 Serving | `llama-server` OpenAI-compatible | Real |
 
-**Latency split** (mean của 3 query, từ output của `pipeline.py`):
+Ba query chạy hết và in provenance (`goodput`, `paged`, `disagg` đứng đầu tương ứng). Mean latency từ `benchmarks/03-integration-results.json`:
 
-- embed: _<ms>_
-- retrieve: _<ms>_
-- llm: _<ms>_
-- **stage chiếm nhiều nhất:** _<stage>_ (_<%>_ của total)
+- embed: **0,0 ms** (không gọi embedding endpoint trong base run)
+- retrieve: **0,7 ms**
+- llm: **2667,6 ms**
+- total: **2668,4 ms**
+- stage lớn nhất: **llm, gần 100%** total
 
-**Reflection** (≤ 60 chữ): bottleneck ở đâu? Có khớp với kỳ vọng của bạn không? Nếu
-phải giảm latency của pipeline này 2×, bạn sẽ tấn công vào đâu?
+**Reflection:** LLM/HTTP áp đảo trên corpus đồ chơi; tối ưu keyword retrieval không thể giảm total 2×. Cần đo tiếp phần server và chi phí request client trước khi chọn cách giảm decode/prefill. Truy vấn có context ngắn ở đây, nên kết quả không đại diện cho RAG dài hoặc embedding model thật.
 
-_Answer here._
+## 5. The single change that mattered most
 
----
+**Change:** tăng `--parallel` từ 1 lên 4 trên cùng UD-Q4_K_XL, 10 Locust users, 60 giây, cùng task mix và token budget. Raw CSV: `benchmarks/locust-p1-u10_stats.csv` và `benchmarks/locust-10_stats.csv`.
 
-## 5. The single change that mattered most  *(rubric 11 — 10 điểm)*
-
-> **Phần quan trọng nhất của report.** Không cần bonus track: `make tune` đã cho bạn
-> một before/after thật (`benchmarks/01-tuning-tg128.md`). Đổi quantization,
-> `LAB_N_CTX`, hay `--parallel` rồi đo lại cũng được.
-
-**Change:** _<vd: hạ -t từ 16 xuống 8; vd: đổi sang UD-Q2_K_XL; vd: --parallel 4 → 8>_
-
-```
-before:  <số + đơn vị>
-after:   <số + đơn vị>
-speedup: <X.Y>×
+```text
+before:  1,29 RPS; P95 8400 ms (--parallel 1)
+after:   2,61 RPS; P95 4500 ms (--parallel 4)
+speedup: 2,02× RPS; P95 giảm 1,87×
 ```
 
-**Tại sao nó work** (1–2 đoạn — đây là phần grader đọc kỹ nhất):
+Một slot chỉ decode một sequence tại một thời điểm. Bốn slot cho scheduler ghép các sequence đang hoạt động vào những bước decode chung và nhận request mới khi slot rảnh. Số token/giây của từng request có thể thay đổi, nhưng tổng throughput tăng và hàng đợi ngắn hơn ở cùng 10 users; vì thế P95 giảm từ 8,4 xuống 4,5 giây. Mẫu 50 users đo riêng cho thấy peak 3,96/4 slot bận, xác nhận scheduler có dùng nhiều slot.
 
-_Giải thích như đang nói với bạn ngồi cạnh. Bám vào **cơ chế**, không phải "vibes":
-memory bandwidth? vector width? cache residency? scheduling? queueing? Nếu kết quả
-**khác** với kỳ vọng từ deck — nói rõ, và giải thích vì sao. Grader thưởng điểm cho
-lập luận đúng về một kết quả bất ngờ, hơn là một con số đẹp không được giải thích._
+Theo sweep thread, `-t 1` và `-t 6` chỉ khác 1,01× (81,05 so với 80,12 tok/s). CUDA đang offload 99 layers, nên thay CPU threads không tác động rõ đến nút thắt chính. Kết quả slot là thay đổi lớn hơn trong các phép đo ở đây. Do prompt trong Locust chọn ngẫu nhiên, tỷ số 2,02× chỉ áp dụng cho hai lượt 60 giây này; cần lặp lại nếu dùng để chọn cấu hình production.
 
-_Answer here._
+## 6. Bonus
 
----
+Đã làm **B2** quantization sweep, **B3** speedup từ sweep, **B4/C5** kiểm tra chất lượng 5 prompt trên Q4/Q2, và **B5/C9** embedding serving thật. Xem `benchmarks/bonus-quant-sweep.md`, `bonus-quality.md`, `bonus-embedding-serving.md`.
 
-## 6. Bonus  *(optional — tối đa 10 điểm)*
-
-> Bỏ trống nếu không làm. Xem `docs/bonus/README.md`. Đừng làm hết — **một** finding sâu
-> ăn điểm hơn năm bảng nông.
-
-**Đã làm:** _<B1 build-compare / B2 sweep nào / B4 challenge nào / B5 lựa chọn nào>_
-
-**Numbers:**
-
-```
-before:  <số>
-after:   <số>
-speedup: <X.Y>×
+```text
+before:  Q2 77,68 tok/s, 2,24 GiB
+after:   Q4 80,61 tok/s, 2,97 GiB
+speedup: Q4 nhanh hơn 1,04× trên phép đo tg128
 ```
 
-**Điều này nói lên gì mà deck chưa nói:**
+Q2 nhỏ hơn nhưng không nhanh hơn trên RTX 3050 này; kích thước file không quyết định tốc độ khi định dạng dequantization và phần cứng cũng tham gia. C5 bộc lộ một lỗi nội dung cụ thể của Q2 về PagedAttention, đồng thời cả hai bản sai định nghĩa TTFT/TPOT nếu hỏi thiếu context. C9 đo batch embedding 1→16: throughput 0,5→6,4 texts/s khi latency request chỉ tăng 2202,7→2511,9 ms; đây là prefill theo batch, không phải vòng decode chat. Bộ thử C9 dùng chat model làm embedder nên chỉ là minh họa regime.
 
-_(để trống nếu bạn không làm phần này)_
+## 7. Điều bất ngờ
 
----
+Q2 dùng ít bộ nhớ hơn nhưng không cải thiện decode; thay `--parallel` có tác động rõ hơn thay CPU thread count khi model offload GPU.
 
-## 7. Điều làm bạn ngạc nhiên nhất  *(optional)*
+## 8. Self-check
 
-_(1–2 câu. Không bắt buộc, nhưng grader đọc hết.)_
+- [x] Hardware, manifest, bench/tune/load/metrics/pipeline reports có số đo thật
+- [x] 5 screenshots chụp từ terminal và CSV Locust thật
+- [x] Model weights và runtime binary không được commit
+- [ ] Người nộp đọc lại phần lập luận, xác nhận cohort và ngày submit
+- [ ] Push public repo và nộp URL lên LMS
 
-_(để trống nếu bạn không làm phần này)_
+## 9. Khai báo sử dụng AI
 
----
-
-## 8. Self-check trước khi push
-
-- [ ] `hardware.json` committed
-- [ ] `models/active.json` committed
-- [ ] `benchmarks/01-quickstart-results.md` committed (`make bench`)
-- [ ] `benchmarks/01-tuning-tg128.md` committed (`make tune`)
-- [ ] `benchmarks/02-server-results.md` committed (`make load-report`)
-- [ ] `benchmarks/02-server-batching-u50.md` hoặc `-metrics-u50.csv` committed (`make metrics`)
-- [ ] `benchmarks/locust-10_stats.csv` + `locust-50_stats.csv` committed (`make load-10` / `load-50`)
-- [ ] `benchmarks/03-integration-results.md` committed (`make pipeline`)
-- [ ] Mọi section **"required — replace this line"** trong các file `benchmarks/*.md`
-      đã được thay bằng nhận xét của bạn
-- [ ] 5 screenshots trong `submission/screenshots/`
-- [ ] `make verify` → **exit 0**
-- [ ] Repo tên đúng mẫu `K4-L3-DAY20-HoVaTen-MSSV-ModelServing` (xem `docs/SUBMISSION.md`)
-- [ ] Repo GitHub ở chế độ **public**
-- [ ] Đã push và paste public URL vào VinUni LMS **trước 23:59 (UTC+7) ngày làm lab**
-- [ ] **Không** commit `models/*.gguf`, `runtime/` hay `.env` (đã có trong `.gitignore`)
-
-**Quan trọng:** repo phải **public** đến khi điểm được công bố. Private → grader không
-xem được → 0 điểm.
-
----
-
-## 9. Khai báo sử dụng AI  *(xem `docs/RULES.md` §3)*
-
-_(Công cụ nào, dùng vào việc gì. Ghi "Không dùng" nếu không dùng.)_
+OpenAI Codex hỗ trợ đọc yêu cầu, chạy script, xử lý lỗi port/mã hóa, tạo ảnh chụp terminal, tổng hợp số đo và soạn **bản nháp** phân tích. Không dùng AI tạo số liệu hay ảnh giả. Người nộp cần đọc, hiểu, sửa theo nhận định của mình và xác nhận nội dung trước khi nộp.

@@ -1,0 +1,22 @@
+[
+  {
+    "question": "Define TTFT and TPOT in one sentence each.",
+    "answer": "**TTFT (Time to First Touch)** is a metric that measures the time elapsed from a user's first interaction with a product or service to their subsequent engagement.\n\n**TPOT (Time to Purchase)** is a metric that quantifies the duration between a user's initial interaction or consideration and the point at which they complete a purchase."
+  },
+  {
+    "question": "Why can 2-bit quantization use less memory but fail to decode faster?",
+    "answer": "This is a fascinating question that touches upon the trade-offs between **model compression (quantization)** and **computational efficiency (decoding speed)**.\n\nThe core reason why 2-bit quantization can use less memory but fail to decode faster lies in the **nature of the information loss** and the **complexity of the decoding process** required to recover the original data.\n\nHere is a detailed breakdown of the reasons:\n\n---\n\n## 1. Why 2-bit Quantization Uses Less Memory\n\nQuantization works by mapping a large range of continuous floating-point values (e.g., 32-bit"
+  },
+  {
+    "question": "Explain what PagedAttention stores in pages and why.",
+    "answer": "## What PagedAttention Stores in Pages and Why\n\n**PagedAttention** is a memory management technique designed to efficiently handle the large and variable memory demands of **attention mechanisms** in large language models (LLMs), particularly when dealing with long sequences or large context windows.\n\nIn essence, PagedAttention borrows the concept of **paging** from operating systems and virtual memory management to manage the Key ($\\text{K}$) and Value ($\\text{V}$) matrices that are generated during the attention calculation.\n\nHere is a detailed breakdown of what it stores in \"pages\" and the rationale behind this design choice:\n\n---\n\n### 1"
+  },
+  {
+    "question": "What does goodput at a latency SLO count?",
+    "answer": "When counting **goodput** in relation to a **latency SLO (Service Level Objective)**, you are essentially measuring the **throughput of successful requests that meet a specific performance criterion.**\n\nHere's a breakdown of what that means, why it's important, and how it's used:\n\n---\n\n## 1. Defining the Terms\n\n### A. Latency SLO (Service Level Objective)\nThis is a **quality metric** focused on **speed**. It defines the acceptable upper bound for how long a request should take to be processed.\n\n* **Example:** \"99% of all API requests must complete within"
+  },
+  {
+    "question": "When does continuous batching admit a new request?",
+    "answer": "The exact moment continuous batching admits a new request depends heavily on the **specific implementation, the underlying system architecture, and the configuration** of the batching mechanism.\n\nHowever, I can explain the **general principles and common scenarios** for when a new request is admitted in a continuous batching system.\n\n---\n\n## Core Concepts of Continuous Batching\n\nContinuous batching (often seen in modern LLM serving frameworks like vLLM or specialized inference servers) aims to maximize GPU utilization by keeping the compute units busy. It achieves this by:\n\n1. **Dynamic Batching:** Grouping incoming requests into batches dynamically as they arrive"
+  }
+]

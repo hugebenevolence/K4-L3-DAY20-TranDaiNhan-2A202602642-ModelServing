@@ -1,0 +1,22 @@
+[
+  {
+    "question": "Define TTFT and TPOT in one sentence each.",
+    "answer": "**TTFT (Time To Failure)** is a metric used in reliability engineering to measure the time elapsed between the start of a system's operation and the point at which it fails.\n\n**TPOT (Time to Point of Failure)** is a metric that measures the time taken for a system to reach a specific, predefined failure state or condition."
+  },
+  {
+    "question": "Why can 2-bit quantization use less memory but fail to decode faster?",
+    "answer": "This is a great question that gets to the heart of the trade-off between **memory efficiency** and **computational speed/accuracy** in model quantization.\n\nHere is a breakdown of why 2-bit quantization can use less memory but fail to decode faster, focusing on the fundamental reasons:\n\n---\n\n## 1. Memory Efficiency (Why it uses less memory)\n\nThe primary benefit of 2-bit quantization is **memory reduction**.\n\n* **Quantization:** Quantization involves mapping the high-precision floating-point values (like FP32) to a smaller set of integer values (like 2-bit"
+  },
+  {
+    "question": "Explain what PagedAttention stores in pages and why.",
+    "answer": "## PagedAttention: What it Stores and Why\n\n**PagedAttention** is a memory management technique designed to efficiently handle the memory requirements of large language models (LLMs) during inference. In essence, it addresses the problem of **memory fragmentation and inefficient memory utilization** that arises when trying to load and run very large models, especially when dealing with complex attention mechanisms.\n\nHere is a breakdown of what PagedAttention stores and why:\n\n---\n\n### 1. What PagedAttention Stores in Pages\n\nPagedAttention fundamentally stores the **attention mechanism's memory footprint** in a structured, contiguous, and highly efficient manner. Instead"
+  },
+  {
+    "question": "What does goodput at a latency SLO count?",
+    "answer": "The term \"goodput\" in the context of a latency SLO (Service Level Objective) refers to the **rate or quantity of successful operations or requests that are being processed within a given time frame, often measured in terms of throughput or successful completions.**\n\nTo understand what \"goodput\" means in this context, we need to break down the components:\n\n### 1. Latency SLO (Service Level Objective)\n\nA **Latency SLO** is a metric that defines the acceptable performance threshold for a system. It specifies how fast a service should respond.\n\n* **Example:** \"99% of all requests must complete within "
+  },
+  {
+    "question": "When does continuous batching admit a new request?",
+    "answer": "The exact moment a continuous batching system admits a new request depends entirely on the **specific implementation and configuration** of that system.\n\nHowever, I can give you a general breakdown of the concepts involved and what you would need to consider:\n\n### Key Concepts in Continuous Batching\n\nContinuous batching (often seen in systems like TensorFlow/PyTorch with dynamic batching, or specialized serving platforms) is designed to keep the GPU/CPU utilization high by overlapping computation.\n\nHere are the typical scenarios for when a new request is admitted:\n\n**1. The System is Ready to Accept New Work:**\n\n* **Input Queue/Load"
+  }
+]
